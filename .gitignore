@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Comentarios clásicos: ~30-50 MB cada uno, se descargan en runtime y no se
+# versionan. Las notas en español (uW) sí van en git porque se empaquetan.
+/assets/commentary/adamclarke.json
+/assets/commentary/matthewhenry.json
+/assets/commentary/jfb-u.json
+/assets/commentary/gill.json

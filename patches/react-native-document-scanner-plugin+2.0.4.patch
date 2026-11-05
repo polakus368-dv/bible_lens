@@ -1,0 +1,30 @@
+diff --git a/node_modules/react-native-document-scanner-plugin/android/src/main/java/com/documentscanner/DocumentScannerModule.kt b/node_modules/react-native-document-scanner-plugin/android/src/main/java/com/documentscanner/DocumentScannerModule.kt
+index fbb6836..0475e4f 100644
+--- a/node_modules/react-native-document-scanner-plugin/android/src/main/java/com/documentscanner/DocumentScannerModule.kt
++++ b/node_modules/react-native-document-scanner-plugin/android/src/main/java/com/documentscanner/DocumentScannerModule.kt
+@@ -52,6 +52,7 @@ class DocumentScannerModule(reactContext: ReactApplicationContext) :
+     val documentScannerOptionsBuilder = GmsDocumentScannerOptions.Builder()
+       .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+       .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
++      .setGalleryImportAllowed(true)
+ 
+     if (options.hasKey("maxNumDocuments")) {
+       documentScannerOptionsBuilder.setPageLimit(
+@@ -67,9 +68,15 @@ class DocumentScannerModule(reactContext: ReactApplicationContext) :
+ 
+     val scanner: GmsDocumentScanner =
+       GmsDocumentScanning.getClient(documentScannerOptionsBuilder.build())
++    val activityResultRegistry =
++      (currentActivity as ComponentActivity).activityResultRegistry
++    // Clave única por escaneo: con una clave fija, el segundo escaneo lanzaba
++    // "Attempting to register with an existing key". El registro vive lo que
++    // vive la Activity; no hace falta (ni se puede) desregistrar desde aquí.
++    val registryKey = "document-scanner-${System.nanoTime()}"
+     val scannerLauncher: ActivityResultLauncher<IntentSenderRequest?> =
+-      (currentActivity as ComponentActivity).activityResultRegistry.register(
+-        "document-scanner",
++      activityResultRegistry.register(
++        registryKey,
+         StartIntentSenderForResult(),
+         { result ->
+           if (result.resultCode == Activity.RESULT_OK) {

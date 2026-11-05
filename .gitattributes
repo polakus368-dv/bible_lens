@@ -1,0 +1,3 @@
+# Los comentarios clásicos se descargan de raw.githubusercontent.com y se
+# validan como JSON: sin conversión de fin de línea ni filtros de git.
+/assets/commentary/*.json -text
