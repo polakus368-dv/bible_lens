@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -38,6 +38,15 @@ function toItem(book: BookInfo): BookListItem {
   return { key: book.id, kind: "book", book };
 }
 
+function filterText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\./g, "")
+    .trim();
+}
+
 export default function BooksSheet({
   visible,
   activeBookId,
@@ -53,6 +62,26 @@ export default function BooksSheet({
     setError(false);
     onClose();
   }, [onClose]);
+
+  const items = useMemo<BookListItem[]>(() => {
+    const needle = filterText(query);
+    if (!needle) return ITEMS;
+    const matches = (book: BookInfo): boolean =>
+      filterText(book.displayES).includes(needle) ||
+      book.names.some((name) => name.startsWith(needle));
+    if (!BOOKS.some(matches)) return ITEMS;
+    const result: BookListItem[] = [];
+    let section: BookListItem | null = null;
+    for (const item of ITEMS) {
+      if (item.kind === "section") section = item;
+      else if (matches(item.book)) {
+        if (section) result.push(section);
+        section = null;
+        result.push(item);
+      }
+    }
+    return result;
+  }, [query]);
 
   const handleSubmit = useCallback(() => {
     const match = resolveBookQuery(query, currentChapter);
@@ -155,7 +184,7 @@ export default function BooksSheet({
             </Text>
           ) : null}
           <FlashList
-            data={ITEMS}
+            data={items}
             renderItem={renderItem}
             keyExtractor={(item: BookListItem) => item.key}
             contentContainerStyle={styles.list}
