@@ -93,6 +93,8 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
   const [commentary, setCommentary] = useState<CommentarySelection | null>(null);
   const [sermonVerse, setSermonVerse] = useState<number | null>(null);
   const [commentedVerses, setCommentedVerses] = useState<ReadonlySet<number>>(EMPTY_SET);
+  // Cambia al descargar o borrar comentarios: fuerza a releer del disco.
+  const [commentaryRevision, setCommentaryRevision] = useState(0);
   const { width } = useWindowDimensions();
 
   const version = getBibleVersion(versionId);
@@ -149,7 +151,7 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
       active = false;
       clearTimeout(timer);
     };
-  }, [view.kind, bookId, chapterNumber, commentaryAuthors]);
+  }, [view.kind, bookId, chapterNumber, commentaryAuthors, commentaryRevision]);
 
   const openChapter = useCallback((nextBookId: string, nextChapter: number) => {
     const nextBook = getBook(nextBookId);
@@ -196,7 +198,8 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
           setView({ kind: "books" });
           return true;
         }
-        return false;
+        BackHandler.exitApp();
+        return true;
       }
     );
     return () => subscription.remove();
@@ -373,6 +376,7 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
               <ChapterCommentsBar
                 bookId={bookId}
                 chapter={chapterNumber}
+                key={commentaryRevision}
                 authorIds={commentaryAuthors}
                 onOpenAuthor={(module) =>
                   isDownloaded(module.id)
@@ -434,6 +438,7 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
         onSelectVersion={handleSelectVersion}
         commentaryAuthors={commentaryAuthors}
         onChangeAuthors={handleChangeAuthors}
+        onCommentaryFilesChange={() => setCommentaryRevision((n) => n + 1)}
         onClose={() => setSettingsOpen(false)}
       />
     </View>
@@ -499,7 +504,7 @@ function Header({
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
-      <VersionChip abbr={versionAbbr} onPress={onPickVersion} />
+      {onScan ? <VersionChip abbr={versionAbbr} onPress={onPickVersion} /> : null}
       {onScan ? (
         <Pressable
           style={styles.topBtn}
@@ -664,18 +669,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingBottom: 12,
-    gap: 8,
+    gap: 6,
   },
   topBtn: {
     backgroundColor: colors.shareBg,
     borderRadius: radii.sm,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 8,
-    minWidth: 40,
+    minWidth: 36,
     alignItems: "center",
   },
   topBtnText: { fontSize: 14, fontWeight: "700", color: colors.navy },
-  topBtnSpacer: { minWidth: 40 },
+  topBtnSpacer: { minWidth: 36 },
   title: {
     flex: 1,
     textAlign: "center",

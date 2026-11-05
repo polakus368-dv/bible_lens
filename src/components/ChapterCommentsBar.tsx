@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   listAuthorsForChapter,
   type CommentaryModule,
@@ -65,11 +65,9 @@ export default function ChapterCommentsBar({
   return (
     <View style={styles.wrap}>
       <Text style={styles.heading}>Comentarios del capítulo</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-      >
+      {/* Un ScrollView horizontal anidado en la lista de versos no recibe el
+          gesto de arrastre en Fabric; las tarjetas fluyen en filas. */}
+      <View style={styles.row}>
         {cards.map((card) => (
           <Pressable
             key={card.module.id}
@@ -79,7 +77,9 @@ export default function ChapterCommentsBar({
             accessibilityLabel={`Comentario de ${card.module.name}`}
           >
             <View style={styles.cardHeader}>
-              <Text style={styles.abbr}>{card.module.abbr}</Text>
+              <Text style={styles.abbr} numberOfLines={1}>
+                {card.module.abbr}
+              </Text>
               <Text style={styles.count}>
                 {card.missing
                   ? "sin descargar"
@@ -93,7 +93,7 @@ export default function ChapterCommentsBar({
             </Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -121,7 +121,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 6,
   },
-  row: { paddingHorizontal: 12, gap: 8 },
+  row: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 12,
+    gap: 8,
+  },
   card: {
     width: 210,
     backgroundColor: colors.surface,

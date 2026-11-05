@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
   chip: {
     backgroundColor: colors.navy,
     borderRadius: radii.sm,
-    paddingHorizontal: 10,
+    paddingHorizontal: 7,
     paddingVertical: 8,
   },
   text: { fontSize: 11, fontWeight: "800", color: colors.onDark },

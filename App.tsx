@@ -30,7 +30,7 @@ export default function App() {
   return (
     <View style={styles.root}>
       <StatusBar style="dark" />
-      <View style={styles.fill}>
+      <View style={scannerOpen ? styles.hidden : styles.fill}>
         <BibleScreen
           jump={jump}
           onOpenScanner={openScanner}

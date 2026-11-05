@@ -73,6 +73,8 @@ export default function CommentarySheet({
     downloaded: boolean;
   } | null>(null);
 
+  const versesKey = verses?.join(",") ?? "";
+
   useEffect(() => {
     setState(null);
     if (!visible || !module) return;
@@ -84,7 +86,8 @@ export default function CommentarySheet({
       setState({ entries: groupByVerse(selected), downloaded: result.downloaded });
     }, 0);
     return () => clearTimeout(timer);
-  }, [visible, module, bookId, chapter, verses]);
+    // versesKey evita recargar cuando el padre recrea el array en cada render.
+  }, [visible, module, bookId, chapter, versesKey]);
 
   if (!module) return null;
 

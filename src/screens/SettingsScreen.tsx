@@ -28,6 +28,8 @@ type Props = {
   onSelectVersion: (id: string) => void;
   commentaryAuthors: string[];
   onChangeAuthors: (ids: string[]) => void;
+  /** Sube al descargar o borrar un módulo para que el lector se refresque. */
+  onCommentaryFilesChange: () => void;
   onClose: () => void;
 };
 
@@ -41,6 +43,7 @@ export default function SettingsScreen({
   onSelectVersion,
   commentaryAuthors,
   onChangeAuthors,
+  onCommentaryFilesChange,
   onClose,
 }: Props) {
   const [authors, setAuthors] = useState<string[]>(commentaryAuthors);
@@ -67,6 +70,7 @@ export default function SettingsScreen({
     setDownloadError(null);
     try {
       await downloadModule(id);
+      onCommentaryFilesChange();
     } catch (error) {
       setDownloadError(
         error instanceof Error && /HTTP \d+/.test(error.message)
@@ -82,6 +86,7 @@ export default function SettingsScreen({
   const handleRemove = (id: string) => {
     removeModule(id);
     refreshDownloads();
+    onCommentaryFilesChange();
   };
 
   const toggleAuthor = (id: string) => {
