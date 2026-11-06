@@ -313,7 +313,7 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
     <Header
       title={headerTitle(view, book, chapterNumber)}
       onBack={view.kind === "books" ? undefined : openBooks}
-      onScan={view.kind === "books" ? undefined : onOpenScanner}
+      onScan={onOpenScanner}
       versionAbbr={version.abbr}
       onPickVersion={() => setVersionPickerOpen(true)}
       onOpenBooks={() => setBooksOpen(true)}
@@ -335,6 +335,14 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
             accessibilityLabel="Abrir todos los libros"
           >
             <Text style={styles.welcomeBtnText}>Todos los libros</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.welcomeBtn, styles.welcomeBtnScan]}
+            onPress={onOpenScanner}
+            accessibilityRole="button"
+            accessibilityLabel="Escanear una página"
+          >
+            <Text style={[styles.welcomeBtnText, styles.welcomeScanText]}>⊞ Escanear</Text>
           </Pressable>
         </View>
       ) : view.kind === "chapters" ? (
@@ -800,7 +808,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 11,
   },
+  welcomeBtnScan: { marginTop: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.navy },
   welcomeBtnText: { fontSize: 13, fontWeight: "700", color: colors.onDark },
+  welcomeScanText: { color: colors.navy },
   versesList: { paddingHorizontal: 16, paddingBottom: 16 },
   readingBody: { flex: 1 },
   verseWrap: { paddingVertical: 4, paddingHorizontal: 4, borderRadius: radii.sm },
