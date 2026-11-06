@@ -34,9 +34,10 @@ import VersionPickerModal from "../components/VersionPickerModal";
 import ChapterCommentsBar from "../components/ChapterCommentsBar";
 import CommentarySheet from "../components/CommentarySheet";
 import {
-  COMMENTARIES,
+  allAuthors,
   DEFAULT_COMMENTARY_IDS,
   getChapterCommentaryAny,
+  PRIMARY_COMMENTARY_ID,
   type CommentaryModule,
 } from "../services/commentary/commentaryService";
 import { isDownloaded } from "../services/commentary/downloads";
@@ -72,7 +73,7 @@ type CommentarySelection = {
 const EMPTY_SET: ReadonlySet<number> = new Set();
 
 /** Autor cuyo comentario abre el botón ◎ junto a cada versículo. */
-const PRIMARY_AUTHOR = "adamclarke";
+const PRIMARY_AUTHOR = PRIMARY_COMMENTARY_ID;
 
 const CHAPTER_COLUMNS = 5;
 const CHAPTER_GRID_PADDING = 12;
@@ -215,9 +216,13 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
     setView({ kind: "chapters", bookId: nextBookId });
   }, []);
 
+  // Usa el libro que muestra la grilla, no el de la lectura anterior.
   const selectChapter = useCallback(
-    (nextChapter: number) => openChapter(bookId, nextChapter),
-    [bookId, openChapter]
+    (nextChapter: number) => {
+      const target = view.kind === "chapters" ? view.bookId : bookId;
+      openChapter(target, nextChapter);
+    },
+    [bookId, openChapter, view]
   );
 
   // Desde el buscador de la biblioteca: con capítulo abre la lectura; sin él,
@@ -261,7 +266,7 @@ export default function BibleScreen({ jump, onOpenScanner }: Props) {
 
   const openVerseCommentary = useCallback(
     (verse: number) => {
-      const module = COMMENTARIES.find((entry) => entry.id === PRIMARY_AUTHOR);
+      const module = allAuthors().find((entry) => entry.id === PRIMARY_AUTHOR);
       if (module) setCommentary({ module, verses: [verse] });
     },
     []

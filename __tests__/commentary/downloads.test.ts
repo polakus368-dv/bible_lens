@@ -1,7 +1,7 @@
 /**
- * downloads.ts usa expo-file-system (API nueva) y el JSON de assets vía require.
- * Se mockean el sistema de archivos en memoria y el módulo de assets para
- * probar la validación y la copia sin tocar disco ni red.
+ * downloads.ts usa expo-file-system (API nueva) y baja los JSON del repositorio.
+ * Se mockea el sistema de archivos en memoria y `fetch` para probar la
+ * validación y la escritura sin tocar disco ni red.
  */
 
 type MemFile = { content: string; exists: boolean };
@@ -65,11 +65,23 @@ const DB = {
   JHN: { 3: [{ v: 16, t: "Nota de traducción" }] },
 };
 
-jest.mock("../../assets/commentary/uW-es_tn.json", () => ({ __esModule: true, default: DB }), {
-  virtual: true,
+const previousFetch = global.fetch;
+
+function mockFetchJson(payload: unknown) {
+  (global as { fetch: unknown }).fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => payload,
+  }));
+}
+
+beforeEach(() => {
+  files.clear();
+  mockFetchJson(DB);
 });
 
-beforeEach(() => files.clear());
+afterAll(() => {
+  (global as { fetch: unknown }).fetch = previousFetch;
+});
 
 async function load() {
   jest.resetModules();
@@ -80,23 +92,26 @@ test("lista los módulos descargables sin descargar", async () => {
   const { listDownloads } = await load();
   const infos = listDownloads();
   expect(infos.map((info) => info.module.id)).toEqual([
+    "uW-es_tn",
     "adamclarke",
     "matthewhenry",
     "jfb-u",
     "gill",
-    "uW-es_tn",
   ]);
   expect(infos.every((info) => !info.downloaded)).toBe(true);
 });
 
-test("descarga copia el JSON validado y lo deja en document/commentary", async () => {
+test("descarga las notas en español del repositorio y las deja validadas", async () => {
   const { downloadModule, isDownloaded } = await load();
   const info = await downloadModule("uW-es_tn");
   expect(info.downloaded).toBe(true);
+  expect(info.module.license).toBe("CC BY-SA 4.0");
   expect(isDownloaded("uW-es_tn")).toBe(true);
   expect(files.has("/doc/commentary/uW-es_tn.json")).toBe(true);
   // El temporal .part no queda atrás tras el move.
   expect(files.has("/doc/commentary/uW-es_tn.json.part")).toBe(false);
+  const [url] = (global.fetch as jest.Mock).mock.calls[0] as [string];
+  expect(url).toContain("polakus368-dv/bible_lens/main/assets/commentary/uW-es_tn.json");
 });
 
 test("lee el capítulo descargado y lo borra", async () => {
@@ -124,53 +139,31 @@ test("un módulo desconocido no se puede descargar", async () => {
 });
 
 test("un clásico se descarga del repositorio remoto", async () => {
-  const fetchMock = jest.fn(async () => ({
-    ok: true,
-    json: async () => ({ JHN: { 3: [{ v: 16, t: "For God so loved" }] } }),
-  }));
-  const previous = global.fetch;
-  (global as { fetch: unknown }).fetch = fetchMock;
-  try {
-    const { downloadModule, isDownloadable, listDownloads } = await load();
-    expect(isDownloadable("adamclarke")).toBe(true);
-    expect(listDownloads().some((info) => info.module.id === "adamclarke")).toBe(true);
+  mockFetchJson({ JHN: { 3: [{ v: 16, t: "For God so loved" }] } });
+  const info0 = await load();
+  expect(info0.isDownloadable("adamclarke")).toBe(true);
+  expect(info0.listDownloads().some((info) => info.module.id === "adamclarke")).toBe(true);
 
-    const info = await downloadModule("adamclarke");
-    expect(info.module.license).toBe("Dominio público");
-    const [url] = fetchMock.mock.calls[0] as unknown as [string];
-    expect(url).toContain("polakus368-dv/bible_lens/main/assets/commentary/adamclarke.json");
-    expect(files.has("/doc/commentary/adamclarke.json")).toBe(true);
-  } finally {
-    (global as { fetch: unknown }).fetch = previous;
-  }
+  const info = await info0.downloadModule("adamclarke");
+  expect(info.module.license).toBe("Dominio público");
+  const [url] = (global.fetch as jest.Mock).mock.calls[0] as [string];
+  expect(url).toContain("polakus368-dv/bible_lens/main/assets/commentary/adamclarke.json");
+  expect(files.has("/doc/commentary/adamclarke.json")).toBe(true);
 });
 
 test("una descarga remota inválida no deja archivo", async () => {
-  const previous = global.fetch;
-  (global as { fetch: unknown }).fetch = jest.fn(async () => ({
-    ok: true,
-    json: async () => ({ JHN: { 3: "no es una lista" } }),
-  }));
-  try {
-    const { downloadModule, isDownloaded } = await load();
-    await expect(downloadModule("gill")).rejects.toThrow("Capítulo inválido");
-    expect(isDownloaded("gill")).toBe(false);
-  } finally {
-    (global as { fetch: unknown }).fetch = previous;
-  }
+  mockFetchJson({ JHN: { 3: "no es una lista" } });
+  const { downloadModule, isDownloaded } = await load();
+  await expect(downloadModule("gill")).rejects.toThrow("Capítulo inválido");
+  expect(isDownloaded("gill")).toBe(false);
 });
 
 test("un error HTTP también falla la descarga", async () => {
-  const previous = global.fetch;
   (global as { fetch: unknown }).fetch = jest.fn(async () => ({
     ok: false,
     status: 404,
     json: async () => ({}),
   }));
-  try {
-    const { downloadModule } = await load();
-    await expect(downloadModule("gill")).rejects.toThrow("HTTP 404");
-  } finally {
-    (global as { fetch: unknown }).fetch = previous;
-  }
+  const { downloadModule } = await load();
+  await expect(downloadModule("gill")).rejects.toThrow("HTTP 404");
 });

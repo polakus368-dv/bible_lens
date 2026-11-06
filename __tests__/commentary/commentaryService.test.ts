@@ -1,5 +1,7 @@
 import {
   COMMENTARIES,
+  DEFAULT_COMMENTARY_IDS,
+  PRIMARY_COMMENTARY_ID,
   allAuthors,
   getChapterCommentaryAny,
   listAuthorsForChapter,
@@ -75,8 +77,15 @@ describe("comentarios descargados", () => {
     }
   });
 
-  test("allAuthors suma las notas en español descargables", () => {
-    expect(allAuthors().some((module) => module.id === "uW-es_tn")).toBe(true);
+  test("allAuthors pone las notas en español primero", () => {
+    const ids = allAuthors().map((module) => module.id);
+    expect(ids[0]).toBe("uW-es_tn");
+    expect(ids).toContain("adamclarke");
+  });
+
+  test("la selección por defecto es español y el indicador ◎ usa uW", () => {
+    expect(DEFAULT_COMMENTARY_IDS).toEqual(["uW-es_tn"]);
+    expect(PRIMARY_COMMENTARY_ID).toBe("uW-es_tn");
   });
 
   test("capítulo descargado devuelve entradas y downloaded", () => {

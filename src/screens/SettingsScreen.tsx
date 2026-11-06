@@ -251,11 +251,10 @@ export default function SettingsScreen({
               <Text style={styles.errorText}>{downloadError}</Text>
             ) : null}
             <Text style={styles.note}>
-              Los clásicos se descargan del repositorio del proyecto (una sola vez
-              por autor); las notas en español vienen incluidas en la app y aquí
-              solo se activan para uso offline. Las notas de unfoldingWord están
-              bajo CC BY-SA 4.0: se puede citar la fuente y el derivado mantiene la
-              misma licencia.
+              Todo se descarga una sola vez por autor y queda disponible sin red.
+              Las notas en español (unfoldingWord) son la opción principal y están
+              bajo CC BY-SA 4.0: hay que citar la fuente y el derivado conserva la
+              misma licencia. Los clásicos están en inglés.
             </Text>
 
             <Text style={styles.section}>Créditos y licencias</Text>
@@ -264,9 +263,25 @@ export default function SettingsScreen({
               respectivos titulares, incluidas solo para uso personal.
             </Text>
             <Text style={styles.credits}>
+              Notas en español: Translation Notes de unfoldingWord (es_tn), CC
+              BY-SA 4.0.
+            </Text>
+            <Text style={styles.credits}>
               Comentarios clásicos de {COMMENTARIES.map((m) => m.name).join(", ")}:
               dominio público, obtenidos de sermonindex.net.
             </Text>
+            <Text style={styles.credits}>
+              «MacArthur (BEM-c)»: la Biblia de Estudio MacArthur tiene © The
+              MacArthur Study Bible / Grace to You. No está disponible para
+              descarga porque no se puede distribuir. Usa la app oficial
+              (studybible.org) para leerla.
+            </Text>
+            <Pressable
+              onPress={() => Linking.openURL("https://studybible.org/")}
+              accessibilityRole="link"
+            >
+              <Text style={styles.linkText}>The MacArthur Study Bible</Text>
+            </Pressable>
             <Pressable
               onPress={() => Linking.openURL("https://sermonindex.net/md/copying-permissions/")}
               accessibilityRole="link"

@@ -20,7 +20,11 @@ export type CommentaryModule = CommentaryModuleMeta;
 
 export const COMMENTARIES: CommentaryModule[] = GENERATED_COMMENTARIES;
 
-export const DEFAULT_COMMENTARY_IDS = ["adamclarke", "matthewhenry"];
+/** Español primero (uW es_tn); los clásicos quedan como opción. */
+export const DEFAULT_COMMENTARY_IDS = ["uW-es_tn"];
+
+/** Autor del indicador ◎ junto a cada versículo. */
+export const PRIMARY_COMMENTARY_ID = "uW-es_tn";
 
 /**
  * Capítulo de cualquier autor. `downloaded: false` indica que el autor existe
@@ -37,7 +41,7 @@ export function getChapterCommentaryAny(
   };
 }
 
-/** Autores conocidos: clásicos del manifiesto más los descargables (uW). */
+/** Autores conocidos: descargables (uW en español) primero, luego los clásicos. */
 export function allAuthors(): CommentaryModule[] {
   const known = new Set(COMMENTARIES.map((module) => module.id));
   const extra: CommentaryModule[] = listDownloads()
@@ -47,12 +51,16 @@ export function allAuthors(): CommentaryModule[] {
       abbr: info.module.abbr,
       name: info.module.name,
       lang: info.module.lang,
-      license: "cc-by-sa",
+      license: "cc-by-sa" as const,
       sourceUrl: info.module.sourceUrl,
       chapters: 0,
       sizeBytes: info.module.sizeBytes,
     }));
-  return [...COMMENTARIES, ...extra];
+  return [...extra, ...COMMENTARIES];
+}
+
+export function isKnownAuthor(id: string): boolean {
+  return allAuthors().some((module) => module.id === id);
 }
 
 /** Entradas cuyo rango de versículos intersecta alguno de `verses`. */

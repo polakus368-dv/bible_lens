@@ -40,18 +40,6 @@ export type DownloadInfo = {
   sizeBytes: number;
 };
 
-function assetsModule(module: unknown): RawDB {
-  const mod = module as { default?: RawDB };
-  return mod.default ?? (module as RawDB);
-}
-
-const SOURCES: Record<string, () => RawDB> = {
-  "uW-es_tn": () => {
-    // @ts-ignore Metro resuelve el require estático al bundlear.
-    return assetsModule(require("../../../assets/commentary/uW-es_tn.json"));
-  },
-};
-
 function commentaryDir(): Directory {
   return new Directory(Paths.document, "commentary");
 }
@@ -62,24 +50,37 @@ function moduleFile(id: string): File {
 
 type RemoteModule = DownloadableModule & { file: string };
 
+const UW_ES_TN: DownloadableModule = {
+  id: "uW-es_tn",
+  name: "Notas en español (unfoldingWord)",
+  abbr: "uW",
+  lang: "es",
+  license: "CC BY-SA 4.0",
+  sourceUrl: "https://git.door43.org/uW/es_tn",
+  sizeBytes: 0,
+};
+
 /**
- * Ruta del JSON en el repositorio remoto. Los clásicos no se bundlean; el
- * build los deja en `assets/commentary/<id>.json` del proyecto y la app los
- * pide desde el repo (rama `main`) la primera vez que se usan.
+ * Nada de comentarios va en el APK: el build deja los JSON en
+ * `assets/commentary/<id>.json` del proyecto y la app los pide del repositorio
+ * (rama `main`) la primera vez que se usan.
  */
-const REMOTE: RemoteModule[] = GENERATED_COMMENTARIES.map((meta) => ({
-  id: meta.id,
-  name: meta.name,
-  abbr: meta.abbr,
-  lang: meta.lang,
-  license: meta.license === "cc-by-sa" ? "CC BY-SA 4.0" : "Dominio público",
-  sourceUrl: meta.sourceUrl,
-  sizeBytes: meta.sizeBytes,
-  file: `assets/commentary/${meta.id}.json`,
-}));
+const REMOTE: RemoteModule[] = [
+  ...GENERATED_COMMENTARIES.map((meta) => ({
+    id: meta.id,
+    name: meta.name,
+    abbr: meta.abbr,
+    lang: meta.lang,
+    license: meta.license === "cc-by-sa" ? "CC BY-SA 4.0" : "Dominio público",
+    sourceUrl: meta.sourceUrl,
+    sizeBytes: meta.sizeBytes,
+    file: `assets/commentary/${meta.id}.json`,
+  })),
+  { ...UW_ES_TN, file: `assets/commentary/${UW_ES_TN.id}.json` },
+];
 
 export function isDownloadable(id: string): boolean {
-  return id in SOURCES || REMOTE.some((module) => module.id === id);
+  return REMOTE.some((module) => module.id === id);
 }
 
 export function isDownloaded(id: string): boolean {
@@ -120,14 +121,10 @@ async function fetchRemote(module: RemoteModule): Promise<RawDB> {
   }
 }
 
-/**
- * Descarga el JSON a document/commentary. Los clásicos se bajan de la red;
- * las notas en español se copian del bundle local.
- */
+/** Descarga el JSON a document/commentary con validación antes de moverlo. */
 export async function downloadModule(id: string): Promise<DownloadInfo> {
-  const local = SOURCES[id];
   const remote = REMOTE.find((module) => module.id === id);
-  if (!local && !remote) throw new Error(`Módulo no descargable: ${id}`);
+  if (!remote) throw new Error(`Módulo no descargable: ${id}`);
 
   const dir = commentaryDir();
   if (!dir.exists) dir.create({ intermediates: true, idempotent: true });
@@ -136,7 +133,7 @@ export async function downloadModule(id: string): Promise<DownloadInfo> {
   const temp = new File(dir, `${id}.json.part`);
   if (temp.exists) temp.delete();
 
-  const db = local ? validate(local()) : await fetchRemote(remote as RemoteModule);
+  const db = await fetchRemote(remote);
   temp.create();
   temp.write(JSON.stringify(db));
   await temp.move(target, { overwrite: true });
@@ -186,26 +183,17 @@ export function downloadedBytes(): number {
   return dir.list().reduce((sum, entry) => sum + ((entry as File).size ?? 0), 0);
 }
 
-const UW_ES_TN: DownloadableModule = {
-  id: "uW-es_tn",
-  name: "Notas en español (unfoldingWord)",
-  abbr: "uW",
-  lang: "es",
-  license: "CC BY-SA 4.0",
-  sourceUrl: "https://git.door43.org/uW/es_tn",
-  sizeBytes: 0,
-};
-
-const MODULES: DownloadableModule[] = [...REMOTE, UW_ES_TN];
-
 function moduleMetadata(id: string): DownloadableModule {
-  const module = MODULES.find((entry) => entry.id === id);
+  const module = REMOTE.find((entry) => entry.id === id);
   if (!module) throw new Error(`Módulo desconocido: ${id}`);
   return module;
 }
 
+/** Descargas en el orden de la UI: español primero, luego los clásicos. */
 export function listDownloads(): DownloadInfo[] {
-  return MODULES.map((module) => ({
+  return [...REMOTE]
+    .sort((a, b) => Number(b.lang === "es") - Number(a.lang === "es"))
+    .map((module) => ({
     module,
     downloaded: isDownloaded(module.id),
     sizeBytes: isDownloaded(module.id) ? moduleFile(module.id).size : 0,
